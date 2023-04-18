@@ -2,11 +2,10 @@ import pygame
 
 
 class TilesBox:
-
     def __init__(self, _x, _y, _rect_size):
-        self.tiles = []
         self.x = _x
         self.y = _y
+        self.tiles = []
         self.rect_size = _rect_size
 
     def draw(self, screen):
@@ -15,9 +14,3 @@ class TilesBox:
             _x = self.x + i * self.rect_size
             rect = pygame.Rect(_x, self.y, self.rect_size, self.rect_size)
             pygame.draw.rect(screen, color, rect, 1)
-        for t in self.tiles:
-            t.draw(screen)
-
-    def add_tile(self, tile):
-        self.tiles.append(tile)
-
