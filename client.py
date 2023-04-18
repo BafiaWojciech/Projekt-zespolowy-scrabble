@@ -4,22 +4,16 @@ from grid import *
 from tiles_box import *
 from move_tile import *
 from tile import *
-
+from tiles_bag import *
+from board import *
 
 FPS = 60
 window_width = 575
 window_height = 625
 rect_size = 35
 
-running = True
-dragging = False
-start_index = (0, 0)
-prev_pos = (0, 0)
-motion = (0, 0)
-new_index = None
 
 board = Board(rect_size)
-
     #TilesBag będzie po stronie serwera, tutaj użyte tylko do tego, aby mieć łatwy dostęp do płytek
 tiles_bag = TilesBag()
     #TilesBag losuje pozycje płytek, dlatego tutaj obiektom 'movable_tiles' ręcznie ustawiam pozycje
@@ -37,6 +31,12 @@ for i in rigid_tiles:
 
 
 def main():
+    running = True
+    dragging = False
+    start_index = (0, 0)
+    prev_pos = (0, 0)
+    motion = (0, 0)
+    new_index = None
     pygame.init()
     screen = pygame.display.set_mode([window_width, window_height])
     clock = pygame.time.Clock()    
