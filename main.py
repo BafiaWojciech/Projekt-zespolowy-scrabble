@@ -1,5 +1,7 @@
 from tiles_bag import *
 from board import *
+from button import *
+import string
 
 FPS = 60
 window_width = 575
@@ -29,6 +31,8 @@ pygame.init()
 screen = pygame.display.set_mode([window_width, window_height])
 clock = pygame.time.Clock()
 
+print(len(string.ascii_uppercase))
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -36,7 +40,7 @@ while running:
 
         # dragging
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            board.drag_tile(*event.pos)
+            board.mouse_button_down(*event.pos)
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             board.stop_dragging(*event.pos)
         elif event.type == pygame.MOUSEMOTION:
