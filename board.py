@@ -4,6 +4,8 @@ from button import Button
 from letter_picker import LetterPicker
 import pygame
 
+from tiles_bag import *
+
 tile_color = (247, 247, 215)
 
 
@@ -21,10 +23,12 @@ class Board:
         self.dragging = False
 
         self.font = pygame.font.Font('FreeSansBold.ttf', 26)
+        self.info_font = pygame.font.Font('FreeSansBold.ttf', 18)
         self.swap_button = Button("wymień", 280, 570, 80, 35)
         self.send_button = Button("wyślij", 375, 570, 80, 35)
         self.pass_button = Button("pasuj", 470, 570, 80, 35)
 
+        self.points_info = ""
         self.pick_letter = False
         self.letter_picker = LetterPicker()
 
@@ -38,7 +42,7 @@ class Board:
         for rt in self.rigid_tiles:
             rect = pygame.Rect(*self.get_position(rt.x, rt.y), self.rect_size - 2, self.rect_size - 2)
             pygame.draw.rect(screen, tile_color, rect, 0, 6)
-            text = self.font.render(rt.letter, True, (0, 0, 0))
+            text = self.font.render(rt.letter[-1], True, (0, 0, 0))
             screen.blit(text, text.get_rect(center=rect.center))
 
         for mt in self.movable_tiles:
@@ -49,8 +53,11 @@ class Board:
                                self.get_position(mt.x, mt.y)[1] + offset[1],
                                self.rect_size - 2, self.rect_size - 2)
             pygame.draw.rect(screen, (255, 255, 255), rect, 0, 6)
-            text = self.font.render(mt.letter, True, (0, 0, 0))
+            text = self.font.render(mt.letter[-1], True, (0, 0, 0))
             screen.blit(text, text.get_rect(center=rect.center))
+
+        points = self.info_font.render(self.points_info, True, (0, 0, 0))
+        screen.blit(points, points.get_rect(center=pygame.Rect(0, 0, 575, 28).center))
 
         if self.pick_letter:
             self.letter_picker.draw(screen)
@@ -71,6 +78,7 @@ class Board:
                     break
 
     def mouse_button_down(self, _x, _y):
+
         if self.pick_letter:
             letter = self.letter_picker.check_click(_x, _y)
             if letter.isalpha():
@@ -81,11 +89,34 @@ class Board:
         else:
             self.drag_tile(_x, _y)
             if self.send_button.check_click(_x, _y):
-                print("wyślij")
+                if self.validate_board_placement():
+                    print("wyślij")
+
+                    # to dokładanie liter powinno odbywać się po stronie serwera
+                    tmp = [t for t in self.movable_tiles if t.x != -1]
+                    for t in tmp:
+                        print(t.letter, t.x, t.y)
+                        self.rigid_tiles.append(t)
+                        self.movable_tiles.remove(t)
+
+                    # w tym miejscu z serwera powinniśmy dostać wylosowane literki
+                    tiles_bag = TilesBag()
+                    for i in tiles_bag.rand(len(tmp)):
+                        self.add_movable_tile(i)
+
             if self.swap_button.check_click(_x, _y):
                 print("wymień")
+
             if self.pass_button.check_click(_x, _y):
                 print("pasuj")
+                for i, t in enumerate(self.movable_tiles):
+                    t.letter = t.letter[0]
+                    t.x = -1
+                    t.y = i
+
+    def mouse_button_up(self, _x, _y):
+        self.stop_dragging(_x, _y)
+        self.validate_board_placement()
 
     def drag_tile(self, _x, _y):
         self.pick_letter = False
@@ -144,3 +175,82 @@ class Board:
             return -1, (_x - 25) // self.rect_size
         else:
             return None, None
+
+    def validate_board_placement(self):
+        self.points_info = ""
+        tmp = [t for t in self.movable_tiles if t.x != -1]
+        if len(tmp) == 0:
+            return False
+
+        board = [[None] * 16 for _ in range(16)]
+
+        if len(self.rigid_tiles) != 0:
+            for t in self.rigid_tiles:
+                board[t.x][t.y] = t
+
+            for t in self.movable_tiles:
+                if board[t.x - 1][t.y] is not None or \
+                        board[t.x + 1][t.y] is not None or \
+                        board[t.x][t.y - 1] is not None or \
+                        board[t.x][t.y + 1] is not None:
+                    break
+            else:
+                self.points_info = "nieprawidłowy ruch - nie ma styku z płytkami na planszy"
+                return False
+
+            for t in self.movable_tiles:
+                board[t.x][t.y] = t
+
+        else:
+            for t in self.movable_tiles:
+                board[t.x][t.y] = t
+            if board[7][7] is None:
+                self.points_info = "pierwszy ruch musi przechodzic przez środek planszy"
+                return False
+
+        if len(tmp) != 1:
+            min_x = min(tmp, key=lambda tmp: tmp.x)
+            min_y = min(tmp, key=lambda tmp: tmp.y)
+            max_x = max(tmp, key=lambda tmp: tmp.x)
+            max_y = max(tmp, key=lambda tmp: tmp.y)
+            if min_x != max_x and min_y != max_y:
+                self.points_info = "nie w jednej linii"
+                return False
+
+            if min_x == max_x:  # pionowo
+                top = min_y
+                bottom = max_y
+                i = 1
+                while board[top.x][top.y - i] is not None:
+                    top = board[top.x][top.y - i]
+                    i = i + 1
+                i = 1
+                while board[bottom.x][bottom.y + i] is not None:
+                    bottom = board[bottom.x][bottom.y + i]
+                    i = i + 1
+                for i in range(top.y, bottom.y + 1):
+                    if board[top.x][i] is None:
+                        self.points_info = "nie ma ciągłości w pionie"
+                        return False
+
+            if min_y == max_y:  # poziomo
+                left = min_x
+                right = max_x
+                i = 1
+                while board[left.x - i][left.y] is not None:
+                    left = board[left.x - i][left.y]
+                    i = i + 1
+                i = 1
+                while board[right.x + i][right.y] is not None:
+                    right = board[right.x + i][right.y]
+                    i = i + 1
+                for i in range(left.x, right.x + 1):
+                    if board[i][left.y] is None:
+                        self.points_info = "nie ma ciągłości w poziomie"
+                        return False
+
+        points = 0
+        # tu liczenie punktów
+        self.points_info = "punkty: " + str(points)
+
+        return True

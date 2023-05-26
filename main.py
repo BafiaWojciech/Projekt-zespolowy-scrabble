@@ -23,10 +23,6 @@ tiles_bag = TilesBag()
 for i in tiles_bag.rand(7):
     board.add_movable_tile(i)
 
-for i in tiles_bag.rand(10):
-    board.add_rigid_tile(i)
-
-
 pygame.init()
 screen = pygame.display.set_mode([window_width, window_height])
 clock = pygame.time.Clock()
@@ -42,7 +38,7 @@ while running:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             board.mouse_button_down(*event.pos)
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            board.stop_dragging(*event.pos)
+            board.mouse_button_up(*event.pos)
         elif event.type == pygame.MOUSEMOTION:
             board.move(*event.pos)
 
