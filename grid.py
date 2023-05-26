@@ -1,7 +1,6 @@
 import pygame
-from tile import *
 
-bonsu_field = {
+bonus_field = {
     (0, 0): "W3", (0, 7): "W3", (0, 14): "W3",
     (7, 0): "W3", (7, 14): "W3", (14, 0): "W3",
     (14, 7): "W3", (14, 14): "W3", (1, 1): "W2",
@@ -33,10 +32,10 @@ red = (250, 50, 77)
 
 
 class Grid:
-    def __init__(self, _x, _y, rect_size):
+    def __init__(self, _x, _y, _rect_size):
         self.x = _x
         self.y = _y
-        self.rect_size = rect_size
+        self.rect_size = _rect_size
 
     def draw(self, screen):
         screen.fill((15, 122, 72))
@@ -46,7 +45,7 @@ class Grid:
                 _y = self.y + j * self.rect_size
                 rect = pygame.Rect(_x, _y, self.rect_size, self.rect_size)
 
-                bonus = bonsu_field.get((i, j))
+                bonus = bonus_field.get((i, j))
                 if bonus == "W3":
                     pygame.draw.rect(screen, red, rect)
                 elif bonus == "W2":
@@ -59,3 +58,16 @@ class Grid:
 
     def get_position(self, i, j):
         return self.x + i * self.rect_size, self.y + j * self.rect_size
+
+    def pull_up_position(self, _x, _y): #this code was deleted - why?
+        if self.x - self.rect_size / 2 > _x:
+            raise Exception("Out of bounds - left")
+        if self.x + self.rect_size * 14.5 < _x:
+            raise Exception("Out of bounds - right")
+        if self.y - self.rect_size / 2 > _y:
+            raise Exception("Out of bounds - top")
+        if self.y + self.rect_size * 14.5 < _y:
+            raise Exception("Out of bounds - bottom")
+        return (self.get_position(
+            (_x - self.x + self.rect_size / 2) // self.rect_size,
+            (_y - self.y + self.rect_size / 2) // self.rect_size))

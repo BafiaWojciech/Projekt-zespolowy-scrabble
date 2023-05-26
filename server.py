@@ -32,23 +32,23 @@ def threaded_client(conn, player):
     while True:
         try:
             print("waiting for data")
-            data = conn.recv(2048).decode()
-            print("recieved data ", data)
-            pos[player] = data
+            #data = conn.recv(2048).decode()
+            #print("recieved data ", data)
+            #pos[player] = data
 
-            if not data:
-                print("Disconnected")
-                break
-            else:
-                if player == 1:
-                    reply = pos[0]
-                else:
-                    reply = pos[1]
+            # if not data:
+            #     print("Disconnected")
+            #     break
+            # else:
+            #     if player == 1:
+            #         reply = pos[0]
+            #     else:
+            #         reply = pos[1]
 
-                print("Received: ", data)
-                print("Sending : ", reply)
+            #     print("Received: ", data)
+            #     print("Sending : ", reply)
 
-            conn.sendall(str.encode(make_pos(reply)))
+            #conn.sendall(str.encode(make_pos(reply)))
         except:
             break
 
