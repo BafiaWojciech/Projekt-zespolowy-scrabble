@@ -188,13 +188,16 @@ class Board:
             for t in self.rigid_tiles:
                 board[t.x][t.y] = t
 
-            for t in self.movable_tiles:
+            wrong = True
+            for t in tmp:
                 if board[t.x - 1][t.y] is not None or \
                         board[t.x + 1][t.y] is not None or \
                         board[t.x][t.y - 1] is not None or \
                         board[t.x][t.y + 1] is not None:
+                    wrong = False
                     break
-            else:
+
+            if wrong:
                 self.points_info = "nieprawidłowy ruch - nie ma styku z płytkami na planszy"
                 return False
 
@@ -220,33 +223,25 @@ class Board:
             if min_x == max_x:  # pionowo
                 top = min_y
                 bottom = max_y
-                i = 1
-                while board[top.x][top.y - i] is not None:
-                    top = board[top.x][top.y - i]
-                    i = i + 1
-                i = 1
-                while board[bottom.x][bottom.y + i] is not None:
-                    bottom = board[bottom.x][bottom.y + i]
-                    i = i + 1
-                for i in range(top.y, bottom.y + 1):
+                while board[top.x][top.y - 1] is not None:
+                    top = board[top.x][top.y - 1]
+                while bottom.y+1 < len(board[bottom.x]) and board[bottom.x][bottom.y + 1] is not None:
+                    bottom = board[bottom.x][bottom.y + 1]
+                for i in range(top.y, bottom.y):
                     if board[top.x][i] is None:
-                        self.points_info = "nie ma ciągłości w pionie"
+                        self.points_info = "nie ma ciągłości w pionie a"
                         return False
 
             if min_y == max_y:  # poziomo
                 left = min_x
                 right = max_x
-                i = 1
-                while board[left.x - i][left.y] is not None:
-                    left = board[left.x - i][left.y]
-                    i = i + 1
-                i = 1
-                while board[right.x + i][right.y] is not None:
-                    right = board[right.x + i][right.y]
-                    i = i + 1
+                while board[left.x - 1][left.y] is not None:
+                    left = board[left.x - 1][left.y]
+                while right.x+1 < len(board) and board[right.x + 1][right.y] is not None:
+                    right = board[right.x + 1][right.y]
                 for i in range(left.x, right.x + 1):
                     if board[i][left.y] is None:
-                        self.points_info = "nie ma ciągłości w poziomie"
+                        self.points_info = "nie ma ciągłości w poziomie b"
                         return False
 
         points = 0
