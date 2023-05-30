@@ -8,6 +8,65 @@ from tiles_bag import *
 
 tile_color = (247, 247, 215)
 
+points_for_letter = {
+    'A': 1,
+    'Ą': 5,
+    'B': 3,
+    'C': 2,
+    'Ć': 6,
+    'D': 2,
+    'E': 1,
+    'Ę': 5,
+    'F': 5,
+    'G': 3,
+    'H': 3,
+    'I': 1,
+    'J': 3,
+    'K': 2,
+    'L': 2,
+    'Ł': 3,
+    'M': 2,
+    'N': 1,
+    'Ń': 7,
+    'O': 1,
+    'Ó': 5,
+    'P': 2,
+    'R': 1,
+    'S': 1,
+    'Ś': 5,
+    'T': 2,
+    'U': 3,
+    'W': 1,
+    'Y': 2,
+    'Z': 1,
+    'Ź': 9,
+    'Ż': 5,
+    ' ': 0
+}
+
+bonsu_field = {
+    (0, 0): "W3", (0, 7): "W3", (0, 14): "W3",
+    (7, 0): "W3", (7, 14): "W3", (14, 0): "W3",
+    (14, 7): "W3", (14, 14): "W3", (1, 1): "W2",
+    (2, 2): "W2", (3, 3): "W2", (4, 4): "W2",
+    (10, 4): "W2", (11, 3): "W2", (12, 2): "W2",
+    (13, 1): "W2", (4, 10): "W2", (3, 11): "W2",
+    (2, 12): "W2", (1, 13): "W2", (10, 10): "W2",
+    (11, 11): "W2", (12, 12): "W2", (13, 13): "W2",
+    (7, 7): "W2", (1, 5): "L3", (5, 1): "L3",
+    (1, 9): "L3", (9, 1): "L3", (5, 5): "L3",
+    (9, 5): "L3", (5, 9): "L3", (13, 5): "L3",
+    (9, 9): "L3", (5, 13): "L3", (13, 9): "L3",
+    (9, 13): "L3", (3, 0): "L2", (0, 3): "L2",
+    (6, 2): "L2", (2, 6): "L2", (7, 3): "L2",
+    (3, 7): "L2", (8, 2): "L2", (2, 8): "L2",
+    (11, 0): "L2", (0, 11): "L2", (6, 6): "L2",
+    (3, 14): "L2", (14, 3): "L2", (8, 6): "L2",
+    (6, 8): "L2", (8, 8): "L2", (12, 6): "L2",
+    (6, 12): "L2", (11, 7): "L2", (7, 11): "L2",
+    (12, 8): "L2", (8, 12): "L2", (14, 11): "L2",
+    (11, 14): "L2"
+}
 
 class Board:
     def __init__(self, _rect_size):
@@ -42,7 +101,7 @@ class Board:
         for rt in self.rigid_tiles:
             rect = pygame.Rect(*self.get_position(rt.x, rt.y), self.rect_size - 2, self.rect_size - 2)
             pygame.draw.rect(screen, tile_color, rect, 0, 6)
-            text = self.font.render(rt.letter[-1], True, (0, 0, 0))
+            text = self.font.render(rt.letter[-1] + str(points_for_letter[rt.letter[0]]), True, (0, 0, 0))
             screen.blit(text, text.get_rect(center=rect.center))
 
         for mt in self.movable_tiles:
@@ -53,7 +112,7 @@ class Board:
                                self.get_position(mt.x, mt.y)[1] + offset[1],
                                self.rect_size - 2, self.rect_size - 2)
             pygame.draw.rect(screen, (255, 255, 255), rect, 0, 6)
-            text = self.font.render(mt.letter[-1], True, (0, 0, 0))
+            text = self.font.render(mt.letter[-1] + str(points_for_letter[mt.letter[0]]), True, (0, 0, 0))
             screen.blit(text, text.get_rect(center=rect.center))
 
         points = self.info_font.render(self.points_info, True, (0, 0, 0))
@@ -211,41 +270,100 @@ class Board:
                 self.points_info = "pierwszy ruch musi przechodzic przez środek planszy"
                 return False
 
-        if len(tmp) != 1:
-            min_x = min(tmp, key=lambda tmp: tmp.x)
-            min_y = min(tmp, key=lambda tmp: tmp.y)
-            max_x = max(tmp, key=lambda tmp: tmp.x)
-            max_y = max(tmp, key=lambda tmp: tmp.y)
-            if min_x != max_x and min_y != max_y:
-                self.points_info = "nie w jednej linii"
-                return False
-
-            if min_x == max_x:  # pionowo
-                top = min_y
-                bottom = max_y
-                while board[top.x][top.y - 1] is not None:
-                    top = board[top.x][top.y - 1]
-                while bottom.y+1 < len(board[bottom.x]) and board[bottom.x][bottom.y + 1] is not None:
-                    bottom = board[bottom.x][bottom.y + 1]
-                for i in range(top.y, bottom.y):
-                    if board[top.x][i] is None:
-                        self.points_info = "nie ma ciągłości w pionie a"
-                        return False
-
-            if min_y == max_y:  # poziomo
-                left = min_x
-                right = max_x
-                while board[left.x - 1][left.y] is not None:
-                    left = board[left.x - 1][left.y]
-                while right.x+1 < len(board) and board[right.x + 1][right.y] is not None:
-                    right = board[right.x + 1][right.y]
-                for i in range(left.x, right.x + 1):
-                    if board[i][left.y] is None:
-                        self.points_info = "nie ma ciągłości w poziomie b"
-                        return False
-
         points = 0
-        # tu liczenie punktów
+        perpendicular_words_points = 0
+        total_word_bonus = 1
+
+        #if len(tmp) != 1:
+        min_x = min(tmp, key=lambda tmp: tmp.x)
+        min_y = min(tmp, key=lambda tmp: tmp.y)
+        max_x = max(tmp, key=lambda tmp: tmp.x)
+        max_y = max(tmp, key=lambda tmp: tmp.y)
+
+        if min_x == max_x:  # pionowo
+            print("pionowo")
+            top = min_y
+            bottom = max_y
+            while board[top.x][top.y - 1] is not None:
+                top = board[top.x][top.y - 1]
+            while bottom.y + 1 < len(board[bottom.x]) and board[bottom.x][bottom.y + 1] is not None:
+                bottom = board[bottom.x][bottom.y + 1]
+            for i in range(top.y, bottom.y + 1):
+                if board[top.x][i] is None:
+                    self.points_info = "nie ma ciągłości w pionie a"
+                    return False
+                else:           # liczenie punktów
+                    l = board[top.x][i]
+                    points += points_for_letter[l.letter[0]]
+                    for t in tmp:
+                        if (t.x, t.y) == (l.x, l.y):    #jeżeli litera jest z movabletiles na planszy
+                            left = l
+                            right = l
+                            while board[left.x - 1][left.y] is not None:
+                                left = board[left.x - 1][left.y]
+                            while right.x + 1 < len(board) and board[right.x + 1][right.y] is not None:
+                                right = board[right.x + 1][right.y]
+                            tmp_points = 0
+                            for i in range(left.x, right.x + 1):
+                                a = board[i][left.y]
+                                tmp_points += points_for_letter[a.letter[0]]
+                            tmp_points = tmp_points - points_for_letter[l.letter[0]]
+                            bonus = bonsu_field.get((l.x,l.y), " 1")
+                            if bonus[0] == 'W':
+                                tmp_points *= int(bonus[1])
+                                total_word_bonus *= int(bonus[1])
+                            if bonus[0] == 'L':
+                                points += (points_for_letter[l.letter[0]] * ((int(bonus[1])) - 1))
+                            perpendicular_words_points += tmp_points
+                            break
+
+        elif min_y == max_y:  # poziomo
+            print("poziomo")
+            left = min_x
+            right = max_x
+            while board[left.x - 1][left.y] is not None:
+                left = board[left.x - 1][left.y]
+            while right.x + 1 < len(board) and board[right.x + 1][right.y] is not None:
+                right = board[right.x + 1][right.y]
+            for i in range(left.x, right.x + 1):
+                if board[i][left.y] is None:
+                    self.points_info = "nie ma ciągłości w poziomie b"
+                    return False
+                else:           # liczenie punktów
+                    l = board[i][left.y]
+                    points += points_for_letter[l.letter[0]]
+                    for t in tmp:
+                        if (t.x, t.y) == (l.x, l.y):    #jeżeli litera jest nowa
+                            top = l
+                            bottom = l
+                            while board[top.x][top.y - 1] is not None:
+                                top = board[top.x][top.y - 1]
+                            while bottom.y + 1 < len(board[bottom.x]) and board[bottom.x][bottom.y + 1] is not None:
+                                bottom = board[bottom.x][bottom.y + 1]
+                            tmp_points = 0
+                            for i in range(top.y, bottom.y + 1):
+                                a = board[i][left.y]
+                                a = board[top.x][i]
+                                tmp_points += points_for_letter[a.letter[0]]
+                            tmp_points = tmp_points - points_for_letter[l.letter[0]]
+                            bonus = bonsu_field.get((l.x, l.y), " 1")
+                            if bonus[0] == 'W':
+                                tmp_points *= int(bonus[1])
+                                total_word_bonus *= int(bonus[1])
+                            if bonus[0] == 'L':
+                                points += (points_for_letter[l.letter[0]] * ((int(bonus[1])) - 1))
+                            perpendicular_words_points += tmp_points
+                            break
+
+        else:
+            self.points_info = "nie w jednej linii"
+            return False
+
+        points *= total_word_bonus
+        points += perpendicular_words_points
+        if len(tmp) == 7:
+            points += 50
         self.points_info = "punkty: " + str(points)
+        print()
 
         return True
