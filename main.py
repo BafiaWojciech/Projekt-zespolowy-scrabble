@@ -5,7 +5,7 @@ import string
 
 FPS = 60
 window_width = 575
-window_height = 625
+window_height = 650
 rect_size = 35
 
 running = True

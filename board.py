@@ -3,10 +3,24 @@ from tiles_box import TilesBox
 from button import Button
 from letter_picker import LetterPicker
 import pygame
+import requests
+from bs4 import BeautifulSoup
 
 from tiles_bag import *
 
 tile_color = (247, 247, 215)
+
+points_color = {
+                0: (170, 170, 170),
+                1: (196, 204, 90),
+                2: (145, 204, 90),
+                3: (15, 150, 49),
+                4: (37, 193, 196),
+                5: (37, 95, 196),
+                6: (237, 133, 36),
+                7: (240, 65, 22),
+                9: (250, 12, 0)
+            }
 
 points_for_letter = {
     'A': 1,
@@ -75,6 +89,9 @@ class Board:
         self.tiles_box = TilesBox(25, 570, self.rect_size)
         self.rigid_tiles = []
         self.movable_tiles = []
+        self.words_in_turn = []
+        self.total_points = 0
+        self.points_in_turn = 0
 
         self.moved_tile = None
         self.motion = (0, 0)
@@ -87,7 +104,10 @@ class Board:
         self.send_button = Button("wyślij", 375, 570, 80, 35)
         self.pass_button = Button("pasuj", 470, 570, 80, 35)
 
+
         self.points_info = ""
+        self.total_points_info = ""
+        self.err_info = ""
         self.pick_letter = False
         self.letter_picker = LetterPicker()
 
@@ -100,8 +120,8 @@ class Board:
 
         for rt in self.rigid_tiles:
             rect = pygame.Rect(*self.get_position(rt.x, rt.y), self.rect_size - 2, self.rect_size - 2)
-            pygame.draw.rect(screen, tile_color, rect, 0, 6)
-            text = self.font.render(rt.letter[-1] + str(points_for_letter[rt.letter[0]]), True, (0, 0, 0))
+            pygame.draw.rect(screen, points_color[points_for_letter[rt.letter[0]]], rect, 0, 6)
+            text = self.font.render(rt.letter[-1], True, (255, 255, 255))
             screen.blit(text, text.get_rect(center=rect.center))
 
         for mt in self.movable_tiles:
@@ -111,12 +131,18 @@ class Board:
             rect = pygame.Rect(self.get_position(mt.x, mt.y)[0] + offset[0],
                                self.get_position(mt.x, mt.y)[1] + offset[1],
                                self.rect_size - 2, self.rect_size - 2)
-            pygame.draw.rect(screen, (255, 255, 255), rect, 0, 6)
-            text = self.font.render(mt.letter[-1] + str(points_for_letter[mt.letter[0]]), True, (0, 0, 0))
+            pygame.draw.rect(screen, points_color[points_for_letter[mt.letter[0]]], rect, 0, 6)
+            text = self.font.render(mt.letter[-1], True, (255, 255, 255))
             screen.blit(text, text.get_rect(center=rect.center))
 
         points = self.info_font.render(self.points_info, True, (0, 0, 0))
-        screen.blit(points, points.get_rect(center=pygame.Rect(0, 0, 575, 28).center))
+        screen.blit(points, points.get_rect(center=pygame.Rect(288, 0, 287, 28).center))
+
+        total_points = self.info_font.render(self.total_points_info, True, (0, 0, 0))
+        screen.blit(total_points, total_points.get_rect(center=pygame.Rect(0, 0, 287, 28).center))
+
+        err = self.info_font.render(self.err_info, True, (0, 0, 0))
+        screen.blit(err, err.get_rect(center=pygame.Rect(0, 620, 575, 25).center))
 
         if self.pick_letter:
             self.letter_picker.draw(screen)
@@ -147,11 +173,22 @@ class Board:
                 self.pick_letter = False
         else:
             self.drag_tile(_x, _y)
+            self.total_points_info = "punkty: " + str(self.total_points)
             if self.send_button.check_click(_x, _y):
                 if self.validate_board_placement():
-                    print("wyślij")
+                    self.err_info = ""
+                    for w in self.words_in_turn:
+                        if not self.is_word_correct(w):
+                            self.err_info = "nie ma takiego słowa jak: " + w
+                            return
 
-                    # to dokładanie liter powinno odbywać się po stronie serwera
+                    self.total_points += self.points_in_turn
+                    self.total_points_info = "punkty: " + str(self.total_points)
+                    print("slowa do wyslania na serwer:")
+                    for s in self.words_in_turn:
+                        print(s)
+
+                    print("litery do wysłania na serwer:")
                     tmp = [t for t in self.movable_tiles if t.x != -1]
                     for t in tmp:
                         print(t.letter, t.x, t.y)
@@ -162,6 +199,7 @@ class Board:
                     tiles_bag = TilesBag()
                     for i in tiles_bag.rand(len(tmp)):
                         self.add_movable_tile(i)
+
 
             if self.swap_button.check_click(_x, _y):
                 print("wymień")
@@ -236,7 +274,9 @@ class Board:
             return None, None
 
     def validate_board_placement(self):
-        self.points_info = ""
+        self.points_in_turn = 0
+        if not self.err_info.startswith("nie ma takiego słowa jak:"):
+            self.err_info = ""
         tmp = [t for t in self.movable_tiles if t.x != -1]
         if len(tmp) == 0:
             return False
@@ -257,7 +297,7 @@ class Board:
                     break
 
             if wrong:
-                self.points_info = "nieprawidłowy ruch - nie ma styku z płytkami na planszy"
+                self.err_info = "nieprawidłowy ruch - nie ma styku z płytkami na planszy"
                 return False
 
             for t in self.movable_tiles:
@@ -267,7 +307,7 @@ class Board:
             for t in self.movable_tiles:
                 board[t.x][t.y] = t
             if board[7][7] is None:
-                self.points_info = "pierwszy ruch musi przechodzic przez środek planszy"
+                self.err_info = "pierwszy ruch musi przechodzic przez środek planszy"
                 return False
 
         points = 0
@@ -280,8 +320,8 @@ class Board:
         max_x = max(tmp, key=lambda tmp: tmp.x)
         max_y = max(tmp, key=lambda tmp: tmp.y)
 
+        words = [[]]
         if min_x == max_x:  # pionowo
-            print("pionowo")
             top = min_y
             bottom = max_y
             while board[top.x][top.y - 1] is not None:
@@ -289,10 +329,12 @@ class Board:
             while bottom.y + 1 < len(board[bottom.x]) and board[bottom.x][bottom.y + 1] is not None:
                 bottom = board[bottom.x][bottom.y + 1]
             for i in range(top.y, bottom.y + 1):
+
                 if board[top.x][i] is None:
-                    self.points_info = "nie ma ciągłości w pionie a"
+                    self.err_info = "nie ma ciągłości w pionie a"
                     return False
                 else:           # liczenie punktów
+                    words[0].append(board[top.x][i].letter)
                     l = board[top.x][i]
                     points += points_for_letter[l.letter[0]]
                     for t in tmp:
@@ -304,7 +346,9 @@ class Board:
                             while right.x + 1 < len(board) and board[right.x + 1][right.y] is not None:
                                 right = board[right.x + 1][right.y]
                             tmp_points = 0
+                            words.append([])
                             for i in range(left.x, right.x + 1):
+                                words[-1].append(board[i][left.y].letter)
                                 a = board[i][left.y]
                                 tmp_points += points_for_letter[a.letter[0]]
                             tmp_points = tmp_points - points_for_letter[l.letter[0]]
@@ -318,7 +362,6 @@ class Board:
                             break
 
         elif min_y == max_y:  # poziomo
-            print("poziomo")
             left = min_x
             right = max_x
             while board[left.x - 1][left.y] is not None:
@@ -327,9 +370,10 @@ class Board:
                 right = board[right.x + 1][right.y]
             for i in range(left.x, right.x + 1):
                 if board[i][left.y] is None:
-                    self.points_info = "nie ma ciągłości w poziomie b"
+                    self.err_info = "nie ma ciągłości w poziomie b"
                     return False
                 else:           # liczenie punktów
+                    words[0].append(board[i][left.y].letter)
                     l = board[i][left.y]
                     points += points_for_letter[l.letter[0]]
                     for t in tmp:
@@ -341,7 +385,9 @@ class Board:
                             while bottom.y + 1 < len(board[bottom.x]) and board[bottom.x][bottom.y + 1] is not None:
                                 bottom = board[bottom.x][bottom.y + 1]
                             tmp_points = 0
+                            words.append([])
                             for i in range(top.y, bottom.y + 1):
+                                words[-1].append(board[top.x][i].letter)
                                 a = board[i][left.y]
                                 a = board[top.x][i]
                                 tmp_points += points_for_letter[a.letter[0]]
@@ -356,14 +402,35 @@ class Board:
                             break
 
         else:
-            self.points_info = "nie w jednej linii"
+            self.err_info = "nie w jednej linii"
             return False
+
+        string_table = []
+        for s in words:
+            string = ''.join([litera.strip() for litera in s])
+            string_table.append(string)
+        string_table_copy = string_table.copy()
+        if len(tmp) == 1 and len(string_table_copy[0]) < 2 and len(self.rigid_tiles) != 0:
+            string_table.remove(string_table_copy[0])
+        for string in string_table_copy[1:]:
+            if len(string) < 2:
+                string_table.remove(string)
+        self.words_in_turn = string_table.copy()
 
         points *= total_word_bonus
         points += perpendicular_words_points
         if len(tmp) == 7:
             points += 50
-        self.points_info = "punkty: " + str(points)
-        print()
-
+        self.points_in_turn = points
+        self.points_info = "punkty za ruch: " + str(self.points_in_turn)
         return True
+
+    def is_word_correct(self, word):
+        url = "https://sjp.pl/" + word
+        response = requests.get(url)
+        if response.status_code == 200:
+            html_content = response.text
+            soup = BeautifulSoup(html_content, "html.parser")
+            if soup.find("body").find("p").text == "dopuszczalne w grach (i) ":
+                return True
+        return False
