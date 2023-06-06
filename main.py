@@ -53,21 +53,6 @@ while running:
             board.move(*event.pos)
         
 
-        # test_str = "Hello"
-        # serialized_object = pickle.dumps(test_str)
-        # n.send(serialized_object)
-        #print("recieve data")
-        #sockets_list = [client_socket]
-
-        #1
-        # response_data = n.recv()
-        # if response_data:
-        #     print("Got response data")
-        #     data = pickle.loads(response_data)
-        #     print("adding to board")
-        #     board.add_rigid_tile(data)
-
-
     
     board.draw(screen)
 
@@ -77,7 +62,6 @@ while running:
     if time.time() - elapsed < SELECT_STEP:
         continue
 
-    print('[INFO] Blocking on select')
     read_sockets, _, _ = select.select(sockets_list, [], [], 0)
     for notified_socket in read_sockets:
         print("notified_socket")

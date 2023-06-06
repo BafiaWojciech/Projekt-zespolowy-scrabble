@@ -10,6 +10,10 @@ from tile import Tile
 from bs4 import BeautifulSoup
 
 from tiles_bag import *
+SIGNAL_WRONG_TURN = -1
+SIGNAL_OK = 0
+SIGNAL_PASS = -2
+SIGNAL_END_GAME = -3
 
 tile_color = (247, 247, 215)
 
@@ -164,20 +168,26 @@ class Board:
                     #  (zmienna self.points_in_turn) żeby rozesłać je do innych przeciwników
                     print("litery do wysłania na serwer:")
                     tmp = [t for t in self.movable_tiles if t.x != -1]
-                    for t in tmp:
-                        print(t.letter, t.x, t.y)
-                        self.rigid_tiles.append(t)
-                        self.movable_tiles.remove(t)
                     self.network.send(pickle.dumps(tmp))
-
+                    ret =  self.network.recv()
+                    print("ret: ", ret)
+                    signal = pickle.loads(ret)
+                    print("signal: ", signal)
+                    if signal != SIGNAL_WRONG_TURN:
+                        for t in tmp:
+                            print(t.letter, t.x, t.y)
+                            self.rigid_tiles.append(t)
+                            self.movable_tiles.remove(t)
+                    
                     # TODO - tutaj gracz powinien dostać literki z serwera, zamiast generować losować je tak jak poniżej
-                    tiles_bag = TilesBag()
-                    for i in tiles_bag.rand(len(tmp)):
-                        self.add_movable_tile(i)
+                        tiles_bag = TilesBag()
+                        for i in tiles_bag.rand(len(tmp)):
+                            self.add_movable_tile(i)
 
-                    self.total_points += self.points_in_turn
-                    self.points_in_turn = 0
-                    self.total_points_info = "punkty: " + str(self.total_points)
+                        self.total_points += self.points_in_turn
+                        self.points_in_turn = 0
+                        self.total_points_info = "punkty: " + str(self.total_points)
+                        
 
             if self.pass_button.check_click(_x, _y):
                 for i, t in enumerate(self.movable_tiles):
