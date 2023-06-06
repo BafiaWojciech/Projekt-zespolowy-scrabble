@@ -1,9 +1,12 @@
 from grid import Grid
+from network import Network
 from tiles_box import TilesBox
 from button import Button
 from letter_picker import LetterPicker
 import pygame
 import requests
+import pickle
+from tile import Tile 
 from bs4 import BeautifulSoup
 
 from tiles_bag import *
@@ -40,7 +43,8 @@ bonsu_field = {
 }
 
 class Board:
-    def __init__(self, _rect_size):
+    def __init__(self, _rect_size, network):
+        self.network = network
         self.rect_size = _rect_size
         self.grid = Grid(25, 25, self.rect_size)
         self.tiles_box = TilesBox(25, 570, self.rect_size)
@@ -144,7 +148,7 @@ class Board:
             else:
                 self.err_info = ""
                 self.exchange_letter_confirmation = False
-            if self.send_button.check_click(_x, _y):
+            if self.send_button.check_click(_x, _y): #wysylanie plytek
                 if self.validate_board_placement():
                     self.err_info = ""
                     for w in self.words_in_turn:
@@ -164,6 +168,7 @@ class Board:
                         print(t.letter, t.x, t.y)
                         self.rigid_tiles.append(t)
                         self.movable_tiles.remove(t)
+                    self.network.send(pickle.dumps(tmp))
 
                     # TODO - tutaj gracz powinien dostać literki z serwera, zamiast generować losować je tak jak poniżej
                     tiles_bag = TilesBag()

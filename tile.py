@@ -3,3 +3,6 @@ class Tile:
         self.letter = _letter
         self.x = _x
         self.y = _y
+    
+    def __str__(self):
+        return f'{self.letter} {self.x} {self.y}'
