@@ -167,6 +167,7 @@ class Board:
                     print("litery do wysłania na serwer:")
                     tmp = [t for t in self.movable_tiles if t.x != -1]
                     self.network.send(pickle.dumps(tmp))
+                    print("server sesponse:")
                     ret =  self.network.recv()
                     print("ret: ", ret)
                     signal = pickle.loads(ret)
@@ -178,12 +179,13 @@ class Board:
                             print(t.letter, t.x, t.y)
                             self.rigid_tiles.append(t)
                             self.movable_tiles.remove(t)
-                    
-                    # TODO - tutaj gracz powinien dostać literki z serwera, zamiast generować losować je tak jak poniżej
-                        tiles_bag = TilesBag()
-                        for i in tiles_bag.rand(len(tmp)):
+                        print("tiles moved to board, recivieng new tiles")
+                        ret =  self.network.recv()
+                        print("got new tiles from server: ", ret)
+                        newTiles = pickle.loads(ret)
+                        print(newTiles)
+                        for i in newTiles:
                             self.add_movable_tile(i)
-
                         self.total_points += self.points_in_turn
                         self.points_in_turn = 0
                         self.total_points_info = "punkty: " + str(self.total_points)

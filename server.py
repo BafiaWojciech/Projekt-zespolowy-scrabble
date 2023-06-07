@@ -3,7 +3,7 @@ from _thread import *
 from tile import Tile
 import sys
 import pickle
-
+from tiles_bag import TilesBag
 SIGNAL_WRONG_TURN = -1
 SIGNAL_OK = 0
 SIGNAL_PASS = -2
@@ -23,6 +23,8 @@ except socket.error as e:
 
 s.listen(2)
 print("Waiting for a connection, Server Started")
+
+bag = TilesBag()
 
 def send_all(obj, exc_player): #send to all (except the original sender)
     print("exc_player ", exc_player)
@@ -47,6 +49,11 @@ def threaded_client(conn, player):
                     send_all(data, player)
                     response_object = pickle.loads(data)
                     print(response_object)
+                    tiles_count = len(response_object)
+                    print("server wants to send ", tiles_count, " tiles")
+                    newTiles = bag.rand(tiles_count)
+                    print("they are: ", newTiles)
+                    players[player].sendall(pickle.dumps(newTiles))
                     curr_player += 1
                     if curr_player >= len(players):
                         curr_player = 0
