@@ -164,8 +164,6 @@ class Board:
                     for s in self.words_in_turn:
                         print(s)
 
-                    # TODO - serwer musi odebrać litery wykonane podczas ruchu oraz liczbę punktów za ruch
-                    #  (zmienna self.points_in_turn) żeby rozesłać je do innych przeciwników
                     print("litery do wysłania na serwer:")
                     tmp = [t for t in self.movable_tiles if t.x != -1]
                     self.network.send(pickle.dumps(tmp))
@@ -173,7 +171,9 @@ class Board:
                     print("ret: ", ret)
                     signal = pickle.loads(ret)
                     print("signal: ", signal)
-                    if signal != SIGNAL_WRONG_TURN:
+                    if signal == SIGNAL_WRONG_TURN:
+                        self.err_info = "czekaj na swoja kolej"
+                    elif signal == SIGNAL_OK:
                         for t in tmp:
                             print(t.letter, t.x, t.y)
                             self.rigid_tiles.append(t)
